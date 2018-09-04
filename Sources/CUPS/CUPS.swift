@@ -295,6 +295,15 @@ public struct CUPSPage {
             header.NumCopies = newValue
         }
     }
+    
+    func write(_ fd: Int32, _ bytes: UnsafeRawBufferPointer) {
+        guard let address = bytes.baseAddress?.assumingMemoryBound(to: UInt8.self) else { return }
+        let raster = cupsRasterOpen(fd, CUPS_RASTER_WRITE)
+        var header = self.header
+        cupsRasterWriteHeader2(raster, &header)
+        cupsRasterWritePixels(raster, UnsafeMutablePointer(mutating: address), UInt32(bytes.count))
+        cupsRasterClose(raster)
+    }
 }
 
 extension CUPSPage {
