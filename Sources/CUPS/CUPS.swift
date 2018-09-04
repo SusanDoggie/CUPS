@@ -284,6 +284,7 @@ public struct CUPSPage {
         self.header.cupsHeight = UInt32(media.height * ydpi) / 2540
         self.header.cupsInteger.5 = self.header.cupsWidth
         self.header.cupsInteger.6 = self.header.cupsHeight
+        self.header.cupsBytesPerLine = (self.header.cupsWidth * self.header.cupsBitsPerPixel + 7) / 8
     }
     
     public var numCopies: UInt32 {
