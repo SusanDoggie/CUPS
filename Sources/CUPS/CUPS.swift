@@ -286,6 +286,29 @@ public struct CUPSPage {
 
 extension CUPSPage {
     
+    public var numColors: UInt32 {
+        return header.cupsNumColors
+    }
+    
+    public var colorOrder: cups_order_t {
+        return header.cupsColorOrder
+    }
+    
+    public var bitsPerColor: UInt32 {
+        return header.cupsBitsPerColor
+    }
+    
+    public var bitsPerPixel: UInt32 {
+        return header.cupsBitsPerPixel
+    }
+    
+    public var bytesPerLine: UInt32 {
+        return header.cupsBytesPerLine
+    }
+}
+
+extension CUPSPage {
+    
     public var numCopies: UInt32 {
         get {
             return header.NumCopies
