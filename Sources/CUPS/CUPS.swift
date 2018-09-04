@@ -57,6 +57,17 @@ extension CUPSDest {
         defer { cupsFreeDests(num_dests, dests) }
         return try callback(cupsGetDest(self.name, self.instance, num_dests, dests))
     }
+    
+    private func withUnsafeDestInfoPointer<Result>(callback: (UnsafeMutablePointer<cups_dest_t>?, OpaquePointer?) throws -> Result) rethrows -> Result {
+        return try self.withUnsafeDestPointer { dest in
+            if let dest = dest, let info = cupsCopyDestInfo(nil, dest) {
+                defer { cupsFreeDestInfo(info) }
+                return try callback(dest, info)
+            } else {
+                return try callback(nil, nil)
+            }
+        }
+    }
 }
 
 extension CUPSDest {
@@ -122,9 +133,9 @@ extension CUPSDest {
     
     public var media: [CUPSMedia] {
         
-        return self.withUnsafeDestPointer { dest in
+        return self.withUnsafeDestInfoPointer { dest, info in
             
-            guard let info = cupsCopyDestInfo(nil, dest) else { return [] }
+            guard let dest = dest, let info = info else { return [] }
             
             let count = cupsGetDestMediaCount(nil, dest, info, 0)
             
@@ -137,19 +148,14 @@ extension CUPSDest {
                 media.append(CUPSMedia(size))
             }
             
-            cupsFreeDestInfo(info)
-            
             return media
         }
     }
     
     public var defaultMedia: CUPSMedia? {
         
-        return self.withUnsafeDestPointer { dest in
-            
-            guard let info = cupsCopyDestInfo(nil, dest) else { return nil }
-            defer { cupsFreeDestInfo(info) }
-            
+        return self.withUnsafeDestInfoPointer { dest, info in
+            guard let dest = dest, let info = info else { return nil }
             var size = cups_size_t()
             guard cupsGetDestMediaDefault(nil, dest, info, 0, &size) == 1 else { return nil }
             return CUPSMedia(size)
