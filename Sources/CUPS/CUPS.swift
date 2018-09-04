@@ -276,10 +276,8 @@ public struct CUPSPage {
     init?(_ media: CUPSMedia, _ type: UnsafePointer<Int8>, _ xdpi: Int32, _ ydpi: Int32, _ sides: UnsafePointer<Int8>?, _ sheet_back: UnsafePointer<Int8>?) {
         guard let page = media.withUnsafePwgMediaPointer(callback: { $0.flatMap { CUPSPage($0, type, xdpi, ydpi, sides, sheet_back) } }) else { return nil }
         self = page
-        self.header.ImagingBoundingBox.0 = 72 * UInt32(media.left) / 2540
-        self.header.ImagingBoundingBox.1 = 72 * UInt32(media.bottom) / 2540
-        self.header.ImagingBoundingBox.2 = 72 * UInt32(media.right) / 2540
-        self.header.ImagingBoundingBox.3 = 72 * UInt32(media.top) / 2540
+        self.header.Margins.0 = 72 * UInt32(media.left) / 2540
+        self.header.Margins.1 = 72 * UInt32(media.bottom) / 2540
         self.header.cupsWidth = UInt32((media.width - media.left - media.right) * xdpi) / 2540
         self.header.cupsHeight = UInt32((media.height - media.top - media.bottom) * ydpi) / 2540
         self.header.cupsInteger.5 = self.header.cupsWidth
