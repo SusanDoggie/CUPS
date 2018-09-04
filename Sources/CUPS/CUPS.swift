@@ -92,6 +92,10 @@ extension CUPSDest {
         return attributes["printer-state"]
     }
     
+    public var stateReasons: String? {
+        return attributes["printer-state-reasons"]
+    }
+    
     public var isShared: Bool? {
         guard let bool = attributes["printer-is-shared"] else { return nil }
         switch bool {
