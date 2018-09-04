@@ -280,8 +280,6 @@ public struct CUPSPage {
         self.header.Margins.1 = 72 * UInt32(media.bottom) / 2540
         self.header.cupsWidth = UInt32((media.width - media.left - media.right) * xdpi) / 2540
         self.header.cupsHeight = UInt32((media.height - media.top - media.bottom) * ydpi) / 2540
-        self.header.cupsInteger.5 = self.header.cupsWidth
-        self.header.cupsInteger.6 = self.header.cupsHeight
         self.header.cupsBytesPerLine = (self.header.cupsWidth * self.header.cupsBitsPerPixel + 7) / 8
     }
     
