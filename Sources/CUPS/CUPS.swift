@@ -282,6 +282,9 @@ public struct CUPSPage {
         self.header.cupsHeight = UInt32((media.height - media.top - media.bottom) * ydpi) / 2540
         self.header.cupsBytesPerLine = (self.header.cupsWidth * self.header.cupsBitsPerPixel + 7) / 8
     }
+}
+
+extension CUPSPage {
     
     public var numCopies: UInt32 {
         get {
@@ -291,6 +294,9 @@ public struct CUPSPage {
             header.NumCopies = newValue
         }
     }
+}
+
+extension CUPSPage {
     
     func write(_ fd: Int32, _ bytes: UnsafeRawBufferPointer) {
         guard let address = bytes.baseAddress?.assumingMemoryBound(to: UInt8.self) else { return }
