@@ -30,25 +30,10 @@ public struct CUPSDest {
     
     public let name: String
     public let instance: String?
-    public let is_default: Bool
-    public let attributes: [String: String]
     
     init(_ dest: cups_dest_t) {
-        
         self.name = dest.name.map { String(cString: $0) } ?? ""
         self.instance = dest.instance.map { String(cString: $0) }
-        self.is_default = dest.is_default != 0
-        
-        var _attributes: [String: String] = [:]
-        
-        if let options = dest.options {
-            for i in 0..<dest.num_options {
-                let option = options[Int(i)]
-                _attributes[String(cString: option.name)] = String(cString: option.value)
-            }
-        }
-        
-        self.attributes = _attributes
     }
 }
 
@@ -64,6 +49,111 @@ extension CUPSDest {
         cupsFreeDests(num_dests, dests)
         
         return _dests
+    }
+    
+    private func withUnsafeDestPointer<Result>(callback: (UnsafeMutablePointer<cups_dest_t>?) throws -> Result) rethrows -> Result {
+        var dests: UnsafeMutablePointer<cups_dest_t>?
+        let num_dests = cupsGetDests(&dests)
+        defer { cupsFreeDests(num_dests, dests) }
+        return try callback(cupsGetDest(self.name, self.instance, num_dests, dests))
+    }
+}
+
+extension CUPSDest {
+    
+    public var isDefault: Bool {
+        return self.withUnsafeDestPointer { !($0?.pointee.is_default == 0) }
+    }
+    
+    public var attributes: [String: String] {
+        
+        return self.withUnsafeDestPointer { dest in
+            
+            guard let dest = dest else { return [:] }
+            
+            var attributes: [String: String] = [:]
+            
+            if let options = dest.pointee.options {
+                for i in 0..<dest.pointee.num_options {
+                    let option = options[Int(i)]
+                    attributes[String(cString: option.name)] = String(cString: option.value)
+                }
+            }
+            
+            return attributes
+        }
+    }
+}
+
+public struct CUPSMedia {
+    
+    public var name: String?
+    
+    public var width: Int32
+    public var height: Int32
+    
+    public var bottom: Int32
+    public var left: Int32
+    public var right: Int32
+    public var top: Int32
+    
+    init(_ size: cups_size_t) {
+        self.name = withUnsafeBytes(of: size.media) { String(cString: $0.baseAddress!.assumingMemoryBound(to: CChar.self)) }
+        self.width = size.width
+        self.height = size.length
+        self.bottom = size.bottom
+        self.left = size.left
+        self.right = size.right
+        self.top = size.top
+    }
+    
+    public init(name: String?, width: Int32, height: Int32, bottom: Int32, left: Int32, right: Int32, top: Int32) {
+        self.name = name
+        self.width = width
+        self.height = height
+        self.bottom = bottom
+        self.left = left
+        self.right = right
+        self.top = top
+    }
+}
+
+extension CUPSDest {
+    
+    public var media: [CUPSMedia] {
+        
+        return self.withUnsafeDestPointer { dest in
+            
+            guard let info = cupsCopyDestInfo(nil, dest) else { return [] }
+            
+            let count = cupsGetDestMediaCount(nil, dest, info, 0)
+            
+            var media: [CUPSMedia] = []
+            media.reserveCapacity(Int(count))
+            
+            for index in 0..<count {
+                var size = cups_size_t()
+                cupsGetDestMediaByIndex(nil, dest, info, index, 0, &size)
+                media.append(CUPSMedia(size))
+            }
+            
+            cupsFreeDestInfo(info)
+            
+            return media
+        }
+    }
+    
+    public var defaultMedia: CUPSMedia? {
+        
+        return self.withUnsafeDestPointer { dest in
+            
+            guard let info = cupsCopyDestInfo(nil, dest) else { return nil }
+            defer { cupsFreeDestInfo(info) }
+            
+            var size = cups_size_t()
+            guard cupsGetDestMediaDefault(nil, dest, info, 0, &size) == 1 else { return nil }
+            return CUPSMedia(size)
+        }
     }
 }
 
