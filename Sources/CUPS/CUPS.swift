@@ -51,14 +51,14 @@ extension CUPSDest {
         return _dests
     }
     
-    private func withUnsafeDestPointer<Result>(callback: (UnsafePointer<cups_dest_t>?) throws -> Result) rethrows -> Result {
+    func withUnsafeDestPointer<Result>(callback: (UnsafePointer<cups_dest_t>?) throws -> Result) rethrows -> Result {
         var dests: UnsafeMutablePointer<cups_dest_t>?
         let num_dests = cupsGetDests(&dests)
         defer { cupsFreeDests(num_dests, dests) }
         return try callback(cupsGetDest(self.name, self.instance, num_dests, dests))
     }
     
-    private func withUnsafeDestInfoPointer<Result>(callback: (UnsafePointer<cups_dest_t>?, OpaquePointer?) throws -> Result) rethrows -> Result {
+    func withUnsafeDestInfoPointer<Result>(callback: (UnsafePointer<cups_dest_t>?, OpaquePointer?) throws -> Result) rethrows -> Result {
         return try self.withUnsafeDestPointer { dest in
             if let dest = UnsafeMutablePointer(mutating: dest), let info = cupsCopyDestInfo(nil, dest) {
                 defer { cupsFreeDestInfo(info) }
@@ -131,7 +131,7 @@ public struct CUPSMedia {
 
 extension CUPSMedia {
     
-    private func withUnsafePwgMediaPointer<Result>(callback: (UnsafePointer<pwg_media_t>?) throws -> Result) rethrows -> Result {
+    func withUnsafePwgMediaPointer<Result>(callback: (UnsafePointer<pwg_media_t>?) throws -> Result) rethrows -> Result {
         return try callback(pwgMediaForSize(width, height))
     }
 }
@@ -272,4 +272,75 @@ public struct CUPSPage {
         self.header = cups_page_header2_t()
         guard cupsRasterInitPWGHeader(&header, UnsafeMutablePointer(mutating: media), type, xdpi, ydpi, sides, sheet_back) != 0 else { return nil }
     }
+    
+    init?(_ media: CUPSMedia, _ type: UnsafePointer<Int8>, _ xdpi: Int32, _ ydpi: Int32, _ sides: UnsafePointer<Int8>?, _ sheet_back: UnsafePointer<Int8>?) {
+        guard let page = media.withUnsafePwgMediaPointer(callback: { $0.flatMap { CUPSPage($0, type, xdpi, ydpi, sides, sheet_back) } }) else { return nil }
+        self = page
+    }
+}
+
+extension CUPSPage {
+    
+    static let type_adobe_rgb_8 = "adobe-rgb_8"
+    static let type_adobe_rgb_16 = "adobe-rgb_16"
+    static let type_black_1 = "black_1"
+    static let type_black_8 = "black_8"
+    static let type_black_16 = "black_16"
+    static let type_cmyk_8 = "cmyk_8"
+    static let type_cmyk_16 = "cmyk_16"
+    static let type_rgb_8 = "rgb_8"
+    static let type_rgb_16 = "rgb_16"
+    static let type_sgray_1 = "sgray_1"
+    static let type_sgray_8 = "sgray_8"
+    static let type_sgray_16 = "sgray_16"
+    static let type_srgb_8 = "srgb_8"
+    static let type_srgb_16 = "srgb_16"
+    
+    static let type_device2_8 = "device2_8"
+    static let type_device3_8 = "device3_8"
+    static let type_device4_8 = "device4_8"
+    static let type_device5_8 = "device5_8"
+    static let type_device6_8 = "device6_8"
+    static let type_device7_8 = "device7_8"
+    static let type_device8_8 = "device8_8"
+    static let type_device9_8 = "device9_8"
+    static let type_device10_8 = "device10_8"
+    static let type_device11_8 = "device11_8"
+    static let type_device12_8 = "device12_8"
+    static let type_device13_8 = "device13_8"
+    static let type_device14_8 = "device14_8"
+    static let type_device15_8 = "device15_8"
+    
+    static let type_device2_16 = "device2_16"
+    static let type_device3_16 = "device3_16"
+    static let type_device4_16 = "device4_16"
+    static let type_device5_16 = "device5_16"
+    static let type_device6_16 = "device6_16"
+    static let type_device7_16 = "device7_16"
+    static let type_device8_16 = "device8_16"
+    static let type_device9_16 = "device9_16"
+    static let type_device10_16 = "device10_16"
+    static let type_device11_16 = "device11_16"
+    static let type_device12_16 = "device12_16"
+    static let type_device13_16 = "device13_16"
+    static let type_device14_16 = "device14_16"
+    static let type_device15_16 = "device15_16"
+    
+}
+
+extension CUPSPage {
+    
+    static let sides_two_sided_long_edge = "two-sided-long-edge"
+    static let sides_two_sided_short_edge = "two-sided-short-edge"
+    static let sides_one_sided = "one-sided"
+    
+}
+
+extension CUPSPage {
+    
+    static let sheet_back_flipped = "flipped"
+    static let sheet_back_manual_tumble = "manual-tumble"
+    static let sheet_back_rotated = "rotated"
+    static let sheet_back_normal = "normal"
+    
 }
