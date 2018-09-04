@@ -296,6 +296,7 @@ extension CUPSPage {
     static let type_srgb_8 = "srgb_8"
     static let type_srgb_16 = "srgb_16"
     
+    static let type_device1_8 = "device1_8"
     static let type_device2_8 = "device2_8"
     static let type_device3_8 = "device3_8"
     static let type_device4_8 = "device4_8"
@@ -311,6 +312,7 @@ extension CUPSPage {
     static let type_device14_8 = "device14_8"
     static let type_device15_8 = "device15_8"
     
+    static let type_device1_16 = "device1_16"
     static let type_device2_16 = "device2_16"
     static let type_device3_16 = "device3_16"
     static let type_device4_16 = "device4_16"
