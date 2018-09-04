@@ -280,8 +280,8 @@ public struct CUPSPage {
         self.header.ImagingBoundingBox.1 = 72 * UInt32(media.bottom) / 2540
         self.header.ImagingBoundingBox.2 = 72 * UInt32(media.right) / 2540
         self.header.ImagingBoundingBox.3 = 72 * UInt32(media.top) / 2540
-        self.header.cupsWidth = UInt32(media.width * xdpi) / 2540
-        self.header.cupsHeight = UInt32(media.height * ydpi) / 2540
+        self.header.cupsWidth = UInt32((media.width - media.left - media.right) * xdpi) / 2540
+        self.header.cupsHeight = UInt32((media.height - media.top - media.bottom) * ydpi) / 2540
         self.header.cupsInteger.5 = self.header.cupsWidth
         self.header.cupsInteger.6 = self.header.cupsHeight
         self.header.cupsBytesPerLine = (self.header.cupsWidth * self.header.cupsBitsPerPixel + 7) / 8
