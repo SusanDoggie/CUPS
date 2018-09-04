@@ -51,16 +51,16 @@ extension CUPSDest {
         return _dests
     }
     
-    private func withUnsafeDestPointer<Result>(callback: (UnsafeMutablePointer<cups_dest_t>?) throws -> Result) rethrows -> Result {
+    private func withUnsafeDestPointer<Result>(callback: (UnsafePointer<cups_dest_t>?) throws -> Result) rethrows -> Result {
         var dests: UnsafeMutablePointer<cups_dest_t>?
         let num_dests = cupsGetDests(&dests)
         defer { cupsFreeDests(num_dests, dests) }
         return try callback(cupsGetDest(self.name, self.instance, num_dests, dests))
     }
     
-    private func withUnsafeDestInfoPointer<Result>(callback: (UnsafeMutablePointer<cups_dest_t>?, OpaquePointer?) throws -> Result) rethrows -> Result {
+    private func withUnsafeDestInfoPointer<Result>(callback: (UnsafePointer<cups_dest_t>?, OpaquePointer?) throws -> Result) rethrows -> Result {
         return try self.withUnsafeDestPointer { dest in
-            if let dest = dest, let info = cupsCopyDestInfo(nil, dest) {
+            if let dest = UnsafeMutablePointer(mutating: dest), let info = cupsCopyDestInfo(nil, dest) {
                 defer { cupsFreeDestInfo(info) }
                 return try callback(dest, info)
             } else {
@@ -129,13 +129,20 @@ public struct CUPSMedia {
     }
 }
 
+extension CUPSMedia {
+    
+    private func withUnsafePwgMediaPointer<Result>(callback: (UnsafePointer<pwg_media_t>?) throws -> Result) rethrows -> Result {
+        return try callback(pwgMediaForSize(width, height))
+    }
+}
+
 extension CUPSDest {
     
     public var media: [CUPSMedia] {
         
         return self.withUnsafeDestInfoPointer { dest, info in
             
-            guard let dest = dest, let info = info else { return [] }
+            guard let dest = UnsafeMutablePointer(mutating: dest), let info = info else { return [] }
             
             let count = cupsGetDestMediaCount(nil, dest, info, 0)
             
@@ -155,7 +162,7 @@ extension CUPSDest {
     public var defaultMedia: CUPSMedia? {
         
         return self.withUnsafeDestInfoPointer { dest, info in
-            guard let dest = dest, let info = info else { return nil }
+            guard let dest = UnsafeMutablePointer(mutating: dest), let info = info else { return nil }
             var size = cups_size_t()
             guard cupsGetDestMediaDefault(nil, dest, info, 0, &size) == 1 else { return nil }
             return CUPSMedia(size)
