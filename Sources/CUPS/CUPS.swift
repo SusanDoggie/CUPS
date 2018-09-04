@@ -268,12 +268,12 @@ public struct CUPSPage {
     
     public var header: cups_page_header2_t
     
-    init?(_ media: UnsafePointer<pwg_media_t>, _ type: UnsafePointer<Int8>, _ xdpi: Int32, _ ydpi: Int32, _ sides: UnsafePointer<Int8>?, _ sheet_back: UnsafePointer<Int8>?) {
+    public init?(_ media: UnsafePointer<pwg_media_t>, _ type: UnsafePointer<Int8>, _ xdpi: Int32, _ ydpi: Int32, _ sides: UnsafePointer<Int8>?, _ sheet_back: UnsafePointer<Int8>?) {
         self.header = cups_page_header2_t()
         guard cupsRasterInitPWGHeader(&header, UnsafeMutablePointer(mutating: media), type, xdpi, ydpi, sides, sheet_back) != 0 else { return nil }
     }
     
-    init?(_ media: CUPSMedia, _ type: UnsafePointer<Int8>, _ xdpi: Int32, _ ydpi: Int32, _ sides: UnsafePointer<Int8>?, _ sheet_back: UnsafePointer<Int8>?) {
+    public init?(_ media: CUPSMedia, _ type: UnsafePointer<Int8>, _ xdpi: Int32, _ ydpi: Int32, _ sides: UnsafePointer<Int8>?, _ sheet_back: UnsafePointer<Int8>?) {
         guard let page = media.withUnsafePwgMediaPointer(callback: { $0.flatMap { CUPSPage($0, type, xdpi, ydpi, sides, sheet_back) } }) else { return nil }
         self = page
         self.header.Margins.0 = 72 * UInt32(media.left) / 2540
@@ -321,7 +321,7 @@ extension CUPSPage {
 
 extension CUPSPage {
     
-    func write(_ fd: Int32, _ bytes: UnsafeRawBufferPointer) {
+    public func write(_ fd: Int32, _ bytes: UnsafeRawBufferPointer) {
         guard let address = bytes.baseAddress?.assumingMemoryBound(to: UInt8.self) else { return }
         let raster = cupsRasterOpen(fd, CUPS_RASTER_WRITE)
         var header = self.header
