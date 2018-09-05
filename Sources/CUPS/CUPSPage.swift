@@ -41,6 +41,10 @@ public struct CUPSPage {
         self.header.Margins.1 = 72 * UInt32(media.bottom) / 2540
         self.header.cupsWidth = UInt32(media.width - media.left - media.right) * xdpi / 2540
         self.header.cupsHeight = UInt32(media.height - media.top - media.bottom) * ydpi / 2540
+        self.header.ImagingBoundingBox.0 = 72 * UInt32(media.left) / 2540
+        self.header.ImagingBoundingBox.1 = 72 * UInt32(media.bottom) / 2540
+        self.header.ImagingBoundingBox.2 = 72 * UInt32(media.width - media.left - media.right) / 2540
+        self.header.ImagingBoundingBox.3 = 72 * UInt32(media.height - media.top - media.bottom) / 2540
         self.header.cupsBytesPerLine = (self.header.cupsWidth * self.header.cupsBitsPerPixel + 7) / 8
     }
 }
@@ -82,13 +86,21 @@ extension CUPSPage {
 
 extension CUPSPage {
     
-    public func write(_ fd: Int32, _ bytes: UnsafeRawBufferPointer) {
-        guard let address = bytes.baseAddress?.assumingMemoryBound(to: UInt8.self) else { return }
-        let raster = cupsRasterOpen(fd, CUPS_RASTER_WRITE)
+    public func write(_ fd: Int32, _ bytes: UnsafeRawBufferPointer) -> Bool {
+        
+        guard let raster = cupsRasterOpen(fd, CUPS_RASTER_WRITE_COMPRESSED) else { return false }
+        defer { cupsRasterClose(raster) }
+        
         var header = self.header
-        cupsRasterWriteHeader2(raster, &header)
-        cupsRasterWritePixels(raster, UnsafeMutablePointer(mutating: address), UInt32(bytes.count))
-        cupsRasterClose(raster)
+        guard cupsRasterWriteHeader2(raster, &header) == 1 else { return false }
+        
+        var bytes = bytes
+        while bytes.count != 0 {
+            let written = cupsRasterWritePixels(raster, UnsafeMutablePointer(mutating: bytes.baseAddress?.assumingMemoryBound(to: UInt8.self)), UInt32(bytes.count))
+            bytes = UnsafeRawBufferPointer(rebasing: bytes.dropFirst(Int(written)))
+        }
+        
+        return true
     }
 }
 
