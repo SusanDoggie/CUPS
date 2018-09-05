@@ -103,14 +103,14 @@ extension CUPSDest {
             
             guard let dest = UnsafeMutablePointer(mutating: dest), let info = info else { return [] }
             
-            let count = cupsGetDestMediaCount(nil, dest, info, 0)
+            let count = cupsGetDestMediaCount(nil, dest, info, UInt32(CUPS_MEDIA_FLAGS_DEFAULT))
             
             var media: [CUPSMedia] = []
             media.reserveCapacity(Int(count))
             
             for index in 0..<count {
                 var size = cups_size_t()
-                cupsGetDestMediaByIndex(nil, dest, info, index, 0, &size)
+                cupsGetDestMediaByIndex(nil, dest, info, index, UInt32(CUPS_MEDIA_FLAGS_DEFAULT), &size)
                 media.append(CUPSMedia(size))
             }
             
@@ -123,7 +123,7 @@ extension CUPSDest {
         return self.withUnsafeDestInfoPointer { dest, info in
             guard let dest = UnsafeMutablePointer(mutating: dest), let info = info else { return nil }
             var size = cups_size_t()
-            guard cupsGetDestMediaDefault(nil, dest, info, 0, &size) == 1 else { return nil }
+            guard cupsGetDestMediaDefault(nil, dest, info, UInt32(CUPS_MEDIA_FLAGS_DEFAULT), &size) == 1 else { return nil }
             return CUPSMedia(size)
         }
     }
