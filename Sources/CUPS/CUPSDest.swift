@@ -222,3 +222,27 @@ extension CUPSDest {
         return Date(timeIntervalSince1970: time)
     }
 }
+
+extension CUPSDest {
+    
+    public func print(title: String, _ files: [String], _ options: [cups_option_t] = []) -> CUPSJob? {
+        
+        var buffer: [UnsafePointer<Int8>?] = []
+        
+        func _print(_ index: Int) -> Int32 {
+            if index == files.count {
+                var buffer = buffer
+                var options = options
+                return cupsPrintFiles(name, Int32(buffer.count), &buffer, title, Int32(options.count), &options)
+            } else {
+                return files[index].withCString {
+                    buffer.append($0)
+                    return _print(index + 1)
+                }
+            }
+        }
+        
+        let job_id = _print(0)
+        return job_id == 0 ? nil : CUPSJob(dest: self, id: job_id)
+    }
+}

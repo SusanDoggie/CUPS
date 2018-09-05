@@ -47,7 +47,7 @@ public struct CUPSMedia {
         self.top = size.top
     }
     
-    public init(name: String?, width: Int32, height: Int32, bottom: Int32, left: Int32, right: Int32, top: Int32) {
+    public init(name: String? = nil, width: Int32, height: Int32, bottom: Int32 = 0, left: Int32 = 0, right: Int32 = 0, top: Int32 = 0) {
         self.name = name
         self.width = width
         self.height = height

@@ -13,6 +13,7 @@
 		0A4D4EA7213F704800DDD102 /* Exported.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A4D4EA6213F704800DDD102 /* Exported.swift */; };
 		0A4D4EA9213F706B00DDD102 /* CUPSMedia.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A4D4EA8213F706B00DDD102 /* CUPSMedia.swift */; };
 		0A4D4EAB213F709D00DDD102 /* CUPSPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A4D4EAA213F709D00DDD102 /* CUPSPage.swift */; };
+		0A4D4EB2213FC74B00DDD102 /* CUPSJob.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A4D4EB1213FC74B00DDD102 /* CUPSJob.swift */; };
 		0AEE6876213E434900C79500 /* libcupsppdc.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 0AEE6872213E434900C79500 /* libcupsppdc.tbd */; };
 		0AEE6877213E434900C79500 /* libcupscgi.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 0AEE6873213E434900C79500 /* libcupscgi.tbd */; };
 		0AEE6878213E434900C79500 /* libcupsmime.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 0AEE6874213E434900C79500 /* libcupsmime.tbd */; };
@@ -28,6 +29,7 @@
 		0A4D4EA6213F704800DDD102 /* Exported.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Exported.swift; sourceTree = "<group>"; };
 		0A4D4EA8213F706B00DDD102 /* CUPSMedia.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CUPSMedia.swift; sourceTree = "<group>"; };
 		0A4D4EAA213F709D00DDD102 /* CUPSPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CUPSPage.swift; sourceTree = "<group>"; };
+		0A4D4EB1213FC74B00DDD102 /* CUPSJob.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CUPSJob.swift; sourceTree = "<group>"; };
 		0AEE6872213E434900C79500 /* libcupsppdc.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libcupsppdc.tbd; path = usr/lib/libcupsppdc.tbd; sourceTree = SDKROOT; };
 		0AEE6873213E434900C79500 /* libcupscgi.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libcupscgi.tbd; path = usr/lib/libcupscgi.tbd; sourceTree = SDKROOT; };
 		0AEE6874213E434900C79500 /* libcupsmime.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libcupsmime.tbd; path = usr/lib/libcupsmime.tbd; sourceTree = SDKROOT; };
@@ -73,6 +75,7 @@
 			children = (
 				0A4D4EA6213F704800DDD102 /* Exported.swift */,
 				0A2BD8CB213A390100E82DE9 /* CUPSDest.swift */,
+				0A4D4EB1213FC74B00DDD102 /* CUPSJob.swift */,
 				0A4D4EA8213F706B00DDD102 /* CUPSMedia.swift */,
 				0A4D4EAA213F709D00DDD102 /* CUPSPage.swift */,
 			);
@@ -185,6 +188,7 @@
 				0A4D4EAB213F709D00DDD102 /* CUPSPage.swift in Sources */,
 				0A2BD8CC213A390100E82DE9 /* CUPSDest.swift in Sources */,
 				0A4D4EA9213F706B00DDD102 /* CUPSMedia.swift in Sources */,
+				0A4D4EB2213FC74B00DDD102 /* CUPSJob.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
