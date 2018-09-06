@@ -274,6 +274,20 @@ extension CUPSPrinter {
             return resolution
         }
     }
+    
+    public var typeSupported: String? {
+        
+        return self.fetch("pwg-raster-document-type-supported", IPP_TAG_KEYWORD) { attr in
+            
+            guard let attr = attr else { return nil }
+            
+            var buffer = [Int8](repeating: 0, count: ippAttributeString(attr, nil, 0) + 1)
+            return buffer.withUnsafeMutableBufferPointer {
+                ippAttributeString(attr, $0.baseAddress, $0.count)
+                return String(cString: $0.baseAddress!)
+            }
+        }
+    }
 }
 
 extension CUPSPrinter {
