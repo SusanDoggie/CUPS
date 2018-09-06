@@ -147,6 +147,20 @@ extension CUPSPrinter {
         
         return try callback(_attr)
     }
+    
+    public func fetch(_ attribute: String) -> String? {
+        
+        return self.fetch(attribute, IPP_TAG_ZERO) { attr in
+            
+            guard let attr = attr else { return nil }
+            
+            var buffer = [Int8](repeating: 0, count: ippAttributeString(attr, nil, 0) + 1)
+            return buffer.withUnsafeMutableBufferPointer {
+                ippAttributeString(attr, $0.baseAddress, $0.count)
+                return String(cString: $0.baseAddress!)
+            }
+        }
+    }
 }
 
 extension CUPSPrinter {
@@ -311,31 +325,11 @@ extension CUPSPrinter {
 extension CUPSPrinter {
     
     public var documentFormatDefault: String? {
-        
-        return self.fetch("document-format-default", IPP_TAG_ZERO) { attr in
-            
-            guard let attr = attr else { return nil }
-            
-            var buffer = [Int8](repeating: 0, count: ippAttributeString(attr, nil, 0) + 1)
-            return buffer.withUnsafeMutableBufferPointer {
-                ippAttributeString(attr, $0.baseAddress, $0.count)
-                return String(cString: $0.baseAddress!)
-            }
-        }
+        return self.fetch("document-format-default")
     }
     
     public var documentFormatSupported: String? {
-        
-        return self.fetch("document-format-supported", IPP_TAG_ZERO) { attr in
-            
-                guard let attr = attr else { return nil }
-                
-                var buffer = [Int8](repeating: 0, count: ippAttributeString(attr, nil, 0) + 1)
-                return buffer.withUnsafeMutableBufferPointer {
-                    ippAttributeString(attr, $0.baseAddress, $0.count)
-                    return String(cString: $0.baseAddress!)
-                }
-            }
+        return self.fetch("document-format-supported")
     }
 }
 
