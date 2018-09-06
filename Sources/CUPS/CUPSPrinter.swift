@@ -133,7 +133,7 @@ extension CUPSPrinter {
     
     public func fetch<Result>(_ attribute: String, _ value_tag: ipp_tag_t, callback: (OpaquePointer?) throws -> Result) rethrows -> Result {
         
-        guard let uri = uri else { return try callback(nil) }
+        guard let uri = uri ?? deviceUri else { return try callback(nil) }
         
         guard let request = ippNewRequest(IPP_OP_GET_PRINTER_ATTRIBUTES) else { return try callback(nil) }
         
