@@ -1,5 +1,5 @@
 //
-//  CUPSDest.swift
+//  CUPSPrinter.swift
 //
 //  The MIT License
 //  Copyright (c) 2015 - 2018 Susan Cheng. All rights reserved.
@@ -25,7 +25,7 @@
 
 import Foundation
 
-public struct CUPSDest {
+public struct CUPSPrinter {
     
     public let name: String
     public let instance: String?
@@ -36,14 +36,14 @@ public struct CUPSDest {
     }
 }
 
-extension CUPSDest {
+extension CUPSPrinter {
     
-    public static var dests: [CUPSDest] {
+    public static var printers: [CUPSPrinter] {
         
         var dests: UnsafeMutablePointer<cups_dest_t>?
         let num_dests = cupsGetDests(&dests)
         
-        let _dests = UnsafeBufferPointer(start: dests, count: Int(num_dests)).map(CUPSDest.init)
+        let _dests = UnsafeBufferPointer(start: dests, count: Int(num_dests)).map(CUPSPrinter.init)
         
         cupsFreeDests(num_dests, dests)
         
@@ -69,7 +69,7 @@ extension CUPSDest {
     }
 }
 
-extension CUPSDest {
+extension CUPSPrinter {
     
     public var isDefault: Bool {
         return self.withUnsafeDestPointer { !($0?.pointee.is_default == 0) }
@@ -95,7 +95,7 @@ extension CUPSDest {
     }
 }
 
-extension CUPSDest {
+extension CUPSPrinter {
     
     public var media: [CUPSMedia] {
         
@@ -129,7 +129,35 @@ extension CUPSDest {
     }
 }
 
-extension CUPSDest {
+extension CUPSPrinter {
+    
+    public func fetch(_ attribute: String) -> String? {
+        
+        guard let uri = uri else { return nil }
+        
+        return attribute.withCString { attr in
+            
+            guard let request = ippNewRequest(IPP_OP_GET_PRINTER_ATTRIBUTES) else { return nil }
+            
+            ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_URI, "printer-uri", nil, uri.absoluteString)
+            ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_NAME, "requesting-user-name", nil, cupsUser())
+            ippAddStrings(request, IPP_TAG_OPERATION, IPP_TAG_KEYWORD, "requested-attributes", 1, nil, [attr])
+            
+            guard let response = cupsDoRequest(nil, request, uri.path) else { return nil }
+            defer { ippDelete(response) }
+            
+            guard let _attr = ippFindAttribute(response, attribute, IPP_TAG_ZERO) else { return nil }
+            
+            var buffer = [Int8](repeating: 0, count: ippAttributeString(_attr, nil, 0) + 1)
+            return buffer.withUnsafeMutableBufferPointer {
+                ippAttributeString(_attr, $0.baseAddress, $0.count)
+                return String(cString: $0.baseAddress!)
+            }
+        }
+    }
+}
+
+extension CUPSPrinter {
     
     public var info: String {
         return attributes["printer-info"] ?? ""
@@ -148,7 +176,7 @@ extension CUPSDest {
     }
 }
 
-extension CUPSDest {
+extension CUPSPrinter {
     
     public var state: String? {
         return attributes["printer-state"]
@@ -191,7 +219,7 @@ extension CUPSDest {
     }
 }
 
-extension CUPSDest {
+extension CUPSPrinter {
     
     public var markerLevels: String? {
         return attributes["marker-levels"]
@@ -223,17 +251,23 @@ extension CUPSDest {
     }
 }
 
-extension CUPSDest {
+extension CUPSPrinter {
     
-    public func print(title: String, _ files: [String], _ options: [cups_option_t] = []) -> CUPSJob? {
+    public func print(title: String, _ files: [String], _ options: [String: String] = [:]) -> CUPSJob? {
         
         var buffer: [UnsafePointer<Int8>?] = []
+        
+        var num_options: Int32 = 0
+        var _options: UnsafeMutablePointer<cups_option_t>?
+        
+        for (key, value) in options {
+            num_options = cupsAddOption(key, value, num_options, &_options)
+        }
         
         func _print(_ index: Int) -> Int32 {
             if index == files.count {
                 var buffer = buffer
-                var options = options
-                return cupsPrintFiles(name, Int32(buffer.count), &buffer, title, Int32(options.count), &options)
+                return cupsPrintFiles(name, Int32(buffer.count), &buffer, title, num_options, _options)
             } else {
                 return files[index].withCString {
                     buffer.append($0)
@@ -243,6 +277,11 @@ extension CUPSDest {
         }
         
         let job_id = _print(0)
+        
+        if num_options != 0 {
+            cupsFreeOptions(num_options, _options)
+        }
+        
         return job_id == 0 ? nil : CUPSJob(dest: self, id: job_id)
     }
 }

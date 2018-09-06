@@ -29,6 +29,8 @@ public struct CUPSPage {
     
     public var header: cups_page_header2_t
     
+    public var data: Data = Data()
+    
     public init?(_ media: UnsafePointer<pwg_media_t>, _ type: UnsafePointer<Int8>, _ xdpi: UInt32, _ ydpi: UInt32, _ sides: UnsafePointer<Int8>?, _ sheet_back: UnsafePointer<Int8>?) {
         self.header = cups_page_header2_t()
         guard cupsRasterInitPWGHeader(&header, UnsafeMutablePointer(mutating: media), type, Int32(xdpi), Int32(ydpi), sides, sheet_back) != 0 else { return nil }
@@ -86,7 +88,8 @@ extension CUPSPage {
 
 extension CUPSPage {
     
-    public func write(_ fd: Int32, _ bytes: UnsafeRawBufferPointer) -> Bool {
+    @discardableResult
+    public func write(_ fd: Int32) -> Bool {
         
         guard let raster = cupsRasterOpen(fd, CUPS_RASTER_WRITE_COMPRESSED) else { return false }
         defer { cupsRasterClose(raster) }
@@ -94,10 +97,14 @@ extension CUPSPage {
         var header = self.header
         guard cupsRasterWriteHeader2(raster, &header) == 1 else { return false }
         
-        var bytes = bytes
-        while bytes.count != 0 {
-            let written = cupsRasterWritePixels(raster, UnsafeMutablePointer(mutating: bytes.baseAddress?.assumingMemoryBound(to: UInt8.self)), UInt32(bytes.count))
-            bytes = UnsafeRawBufferPointer(rebasing: bytes.dropFirst(Int(written)))
+        data.withUnsafeBytes { (bytes: UnsafePointer<UInt8>) in
+            var bytes = bytes
+            var remain = UInt32(data.count)
+            while remain > 0 {
+                let written = cupsRasterWritePixels(raster, UnsafeMutablePointer(mutating: bytes), remain)
+                bytes += Int(written)
+                remain -= written
+            }
         }
         
         return true

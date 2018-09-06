@@ -27,10 +27,10 @@ import Foundation
 
 public struct CUPSJob {
     
-    public let dest: CUPSDest
+    public let dest: CUPSPrinter
     public let id: Int32
     
-    init(dest: CUPSDest, id: Int32) {
+    init(dest: CUPSPrinter, id: Int32) {
         self.dest = dest
         self.id = id
     }

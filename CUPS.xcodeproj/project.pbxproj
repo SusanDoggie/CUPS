@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0A2BD8CC213A390100E82DE9 /* CUPSDest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A2BD8CB213A390100E82DE9 /* CUPSDest.swift */; };
+		0A2BD8CC213A390100E82DE9 /* CUPSPrinter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A2BD8CB213A390100E82DE9 /* CUPSPrinter.swift */; };
 		0A2BD8D0213A39A300E82DE9 /* ccups.h in Headers */ = {isa = PBXBuildFile; fileRef = 0A2BD8CE213A39A300E82DE9 /* ccups.h */; };
 		0A2BD8F4213A40D800E82DE9 /* libcups.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 0A2BD8F3213A40D800E82DE9 /* libcups.tbd */; };
 		0A4D4EA7213F704800DDD102 /* Exported.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A4D4EA6213F704800DDD102 /* Exported.swift */; };
@@ -22,7 +22,7 @@
 
 /* Begin PBXFileReference section */
 		0A2BD8BD213A37A000E82DE9 /* CUPS.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = CUPS.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		0A2BD8CB213A390100E82DE9 /* CUPSDest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CUPSDest.swift; sourceTree = "<group>"; };
+		0A2BD8CB213A390100E82DE9 /* CUPSPrinter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CUPSPrinter.swift; sourceTree = "<group>"; };
 		0A2BD8CE213A39A300E82DE9 /* ccups.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ccups.h; sourceTree = "<group>"; };
 		0A2BD8CF213A39A300E82DE9 /* module.modulemap */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = "sourcecode.module-map"; path = module.modulemap; sourceTree = "<group>"; };
 		0A2BD8F3213A40D800E82DE9 /* libcups.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libcups.tbd; path = usr/lib/libcups.tbd; sourceTree = SDKROOT; };
@@ -74,7 +74,7 @@
 			isa = PBXGroup;
 			children = (
 				0A4D4EA6213F704800DDD102 /* Exported.swift */,
-				0A2BD8CB213A390100E82DE9 /* CUPSDest.swift */,
+				0A2BD8CB213A390100E82DE9 /* CUPSPrinter.swift */,
 				0A4D4EB1213FC74B00DDD102 /* CUPSJob.swift */,
 				0A4D4EA8213F706B00DDD102 /* CUPSMedia.swift */,
 				0A4D4EAA213F709D00DDD102 /* CUPSPage.swift */,
@@ -186,7 +186,7 @@
 			files = (
 				0A4D4EA7213F704800DDD102 /* Exported.swift in Sources */,
 				0A4D4EAB213F709D00DDD102 /* CUPSPage.swift in Sources */,
-				0A2BD8CC213A390100E82DE9 /* CUPSDest.swift in Sources */,
+				0A2BD8CC213A390100E82DE9 /* CUPSPrinter.swift in Sources */,
 				0A4D4EA9213F706B00DDD102 /* CUPSMedia.swift in Sources */,
 				0A4D4EB2213FC74B00DDD102 /* CUPSJob.swift in Sources */,
 			);
