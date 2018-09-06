@@ -31,7 +31,7 @@ public struct CUPSPage {
     
     public var data: Data = Data()
     
-    public init?(_ media: CUPSMedia, _ type: UnsafePointer<Int8>, _ xdpi: UInt32, _ ydpi: UInt32, _ sides: UnsafePointer<Int8>?, _ sheet_back: UnsafePointer<Int8>?) {
+    public init?(_ media: CUPSMedia, _ type: String, _ xdpi: UInt32, _ ydpi: UInt32, _ sides: String?, _ sheet_back: String?) {
         self.header = cups_page_header2_t()
         guard media.withUnsafePwgMediaPointer(callback: { cupsRasterInitPWGHeader(&header, UnsafeMutablePointer(mutating: $0), type, Int32(xdpi), Int32(ydpi), sides, sheet_back) }) != 0 else { return nil }
         self.header.Margins.0 = 72 * UInt32(media.left) / 2540
