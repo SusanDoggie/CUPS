@@ -49,6 +49,9 @@ extension CUPSPrinter {
         
         return _dests
     }
+}
+
+extension CUPSPrinter {
     
     func withUnsafeDestPointer<Result>(callback: (UnsafePointer<cups_dest_t>?) throws -> Result) rethrows -> Result {
         var dests: UnsafeMutablePointer<cups_dest_t>?
@@ -75,57 +78,60 @@ extension CUPSPrinter {
         return self.withUnsafeDestPointer { !($0?.pointee.is_default == 0) }
     }
     
-    public var attributes: [String: String] {
-        
+    public var uri: URL? {
         return self.withUnsafeDestPointer { dest in
-            
-            guard let dest = dest else { return [:] }
-            
-            var attributes: [String: String] = [:]
-            
-            if let options = dest.pointee.options {
-                for i in 0..<dest.pointee.num_options {
-                    let option = options[Int(i)]
-                    attributes[String(cString: option.name)] = String(cString: option.value)
-                }
-            }
-            
-            return attributes
+            guard let dest = dest else { return nil }
+            guard let uri = cupsGetOption("printer-uri-supported", dest.pointee.num_options, dest.pointee.options) else { return nil }
+            return URL(string: String(cString: uri))
+        }
+    }
+    
+    public var deviceUri: URL? {
+        return self.withUnsafeDestPointer { dest in
+            guard let dest = dest else { return nil }
+            guard let uri = cupsGetOption("device-uri", dest.pointee.num_options, dest.pointee.options) else { return nil }
+            return URL(string: String(cString: uri))
         }
     }
 }
 
 extension CUPSPrinter {
     
-    public var media: [CUPSMedia] {
+    public var _attributes: [String] {
         
-        return self.withUnsafeDestInfoPointer { dest, info in
-            
-            guard let dest = UnsafeMutablePointer(mutating: dest), let info = info else { return [] }
-            
-            let count = cupsGetDestMediaCount(nil, dest, info, UInt32(CUPS_MEDIA_FLAGS_DEFAULT))
-            
-            var media: [CUPSMedia] = []
-            media.reserveCapacity(Int(count))
-            
-            for index in 0..<count {
-                var size = cups_size_t()
-                cupsGetDestMediaByIndex(nil, dest, info, index, UInt32(CUPS_MEDIA_FLAGS_DEFAULT), &size)
-                media.append(CUPSMedia(size))
-            }
-            
-            return media
+        guard let uri = uri ?? deviceUri else { return [] }
+        
+        guard let request = ippNewRequest(IPP_OP_GET_PRINTER_ATTRIBUTES) else { return [] }
+        
+        ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_URI, "printer-uri", nil, uri.absoluteString)
+        ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_NAME, "requesting-user-name", nil, cupsUser())
+        
+        guard let response = cupsDoRequest(nil, request, uri.path) else { return [] }
+        defer { ippDelete(response) }
+        
+        guard let first_attr = ippFirstAttribute(response) else { return [] }
+        
+        var attrs: [String] = [String(cString: ippGetName(first_attr))]
+        
+        while let attr = ippNextAttribute(response) {
+            attrs.append(String(cString: ippGetName(attr)))
         }
+        
+        return attrs.sorted()
     }
+}
+
+extension CUPSPrinter {
     
-    public var defaultMedia: CUPSMedia? {
+    public var attributes: [String: String] {
         
-        return self.withUnsafeDestInfoPointer { dest, info in
-            guard let dest = UnsafeMutablePointer(mutating: dest), let info = info else { return nil }
-            var size = cups_size_t()
-            guard cupsGetDestMediaDefault(nil, dest, info, UInt32(CUPS_MEDIA_FLAGS_DEFAULT), &size) == 1 else { return nil }
-            return CUPSMedia(size)
+        var attributes: [String: String] = [:]
+        
+        for attr in self._attributes {
+            attributes[attr] = self.fetch(attr)
         }
+        
+        return attributes
     }
 }
 
@@ -172,13 +178,39 @@ extension CUPSPrinter {
     public var model: String? {
         return attributes["printer-make-and-model"]
     }
+}
+
+extension CUPSPrinter {
     
-    public var uri: URL? {
-        return attributes["printer-uri-supported"].flatMap { URL(string: $0) }
+    public var media: [CUPSMedia] {
+        
+        return self.withUnsafeDestInfoPointer { dest, info in
+            
+            guard let dest = UnsafeMutablePointer(mutating: dest), let info = info else { return [] }
+            
+            let count = cupsGetDestMediaCount(nil, dest, info, UInt32(CUPS_MEDIA_FLAGS_DEFAULT))
+            
+            var media: [CUPSMedia] = []
+            media.reserveCapacity(Int(count))
+            
+            for index in 0..<count {
+                var size = cups_size_t()
+                cupsGetDestMediaByIndex(nil, dest, info, index, UInt32(CUPS_MEDIA_FLAGS_DEFAULT), &size)
+                media.append(CUPSMedia(size))
+            }
+            
+            return media
+        }
     }
     
-    public var deviceUri: URL? {
-        return attributes["device-uri"].flatMap { URL(string: $0) }
+    public var defaultMedia: CUPSMedia? {
+        
+        return self.withUnsafeDestInfoPointer { dest, info in
+            guard let dest = UnsafeMutablePointer(mutating: dest), let info = info else { return nil }
+            var size = cups_size_t()
+            guard cupsGetDestMediaDefault(nil, dest, info, UInt32(CUPS_MEDIA_FLAGS_DEFAULT), &size) == 1 else { return nil }
+            return CUPSMedia(size)
+        }
     }
 }
 
@@ -323,11 +355,11 @@ extension CUPSPrinter {
 extension CUPSPrinter {
     
     public var documentFormatDefault: String? {
-        return self.fetch("document-format-default")
+        return attributes["document-format-default"]
     }
     
     public var documentFormatSupported: String? {
-        return self.fetch("document-format-supported")
+        return attributes["document-format-supported"]
     }
 }
 
@@ -363,171 +395,5 @@ extension CUPSPrinter {
         }
         
         return job_id == 0 ? nil : CUPSJob(dest: self, id: job_id)
-    }
-}
-
-extension CUPSPrinter {
-    
-    public var _attributes: [String: String] {
-        
-        let attrs = [
-            "auth-info-required",
-            "charset-configured",
-            "charset-supported",
-            "color-supported",
-            "compression-supported",
-            "device-service-count",
-            "device-uri",
-            "device-uuid",
-            "document-charset-default",
-            "document-charset-supported",
-            "document-creation-attributes-supported",
-            "document-digital-signature-default",
-            "document-digital-signature-supported",
-            "document-format-default",
-            "document-format-details-default",
-            "document-format-details-supported",
-            "document-format-supported",
-            "document-format-varying-attributes",
-            "document-format-version-default",
-            "document-format-version-supported",
-            "document-natural-language-default",
-            "document-natural-language-supported",
-            "document-password-supported",
-            "generated-natural-language-supported",
-            "identify-actions-default",
-            "identify-actions-supported",
-            "input-source-supported",
-            "ipp-features-supported",
-            "ipp-versions-supported",
-            "ippget-event-life",
-            "job-authorization-uri-supported",
-            "job-constraints-supported",
-            "job-creation-attributes-supported",
-            "job-finishings-col-ready",
-            "job-finishings-ready",
-            "job-ids-supported",
-            "job-impressions-supported",
-            "job-k-limit",
-            "job-k-octets-supported",
-            "job-media-sheets-supported",
-            "job-page-limit",
-            "job-password-encryption-supported",
-            "job-password-supported",
-            "job-quota-period",
-            "job-resolvers-supported",
-            "job-settable-attributes-supported",
-            "job-spooling-supported",
-            "jpeg-k-octets-supported",
-            "jpeg-x-dimension-supported",
-            "jpeg-y-dimension-supported",
-            "landscape-orientation-requested-preferred",
-            "marker-change-time",
-            "marker-colors",
-            "marker-high-levels",
-            "marker-levels",
-            "marker-low-levels",
-            "marker-message",
-            "marker-names",
-            "marker-types",
-            "media-col-ready",
-            "media-ready",
-            "member-names",
-            "member-uris",
-            "multiple-destination-uris-supported",
-            "multiple-document-jobs-supported",
-            "multiple-operation-time-out",
-            "multiple-operation-time-out-action",
-            "natural-language-configured",
-            "operations-supported",
-            "pages-per-minute",
-            "pages-per-minute-color",
-            "pdf-k-octets-supported",
-            "pdf-versions-supported",
-            "pdl-override-supported",
-            "port-monitor",
-            "port-monitor-supported",
-            "preferred-attributes-supported",
-            "printer-alert",
-            "printer-alert-description",
-            "printer-charge-info",
-            "printer-charge-info-uri",
-            "printer-commands",
-            "printer-current-time",
-            "printer-detailed-status-messages",
-            "printer-device-id",
-            "printer-dns-sd-name",
-            "printer-driver-installer",
-            "printer-fax-log-uri",
-            "printer-fax-modem-info",
-            "printer-fax-modem-name",
-            "printer-fax-modem-number",
-            "printer-firmware-name",
-            "printer-firmware-patches",
-            "printer-firmware-string-version",
-            "printer-firmware-version",
-            "printer-geo-location",
-            "printer-get-attributes-supported",
-            "printer-icc-profiles",
-            "printer-icons",
-            "printer-info",
-            "printer-input-tray",
-            "printer-is-accepting-jobs",
-            "printer-is-shared",
-            "printer-kind",
-            "printer-location",
-            "printer-make-and-model",
-            "printer-mandatory-job-attributes",
-            "printer-message-date-time",
-            "printer-message-from-operator",
-            "printer-message-time",
-            "printer-more-info",
-            "printer-more-info-manufacturer",
-            "printer-name",
-            "printer-native-formats",
-            "printer-organization",
-            "printer-organizational-unit",
-            "printer-output-tray",
-            "printer-settable-attributes-supported",
-            "printer-state",
-            "printer-state-change-date-time",
-            "printer-state-change-time",
-            "printer-state-message",
-            "printer-state-reasons",
-            "printer-supply",
-            "printer-supply-description",
-            "printer-supply-info-uri",
-            "printer-type",
-            "printer-up-time",
-            "printer-uri-supported",
-            "printer-uuid",
-            "printer-xri-supported",
-            "pwg-raster-document-resolution-supported",
-            "pwg-raster-document-sheet-back",
-            "pwg-raster-document-type-supported",
-            "queued-job-count",
-            "reference-uri-schemes-supported",
-            "repertoire-supported",
-            "requesting-user-name-allowed",
-            "requesting-user-name-denied",
-            "requesting-user-uri-supported",
-            "subordinate-printers-supported",
-            "urf-supported",
-            "uri-authentication-supported",
-            "uri-security-supported",
-            "user-defined-value-supported",
-            "which-jobs-supported",
-            "xri-authentication-supported",
-            "xri-security-supported",
-            "xri-uri-scheme-supported",
-            ]
-        
-        var attributes: [String: String] = [:]
-        
-        for attr in attrs {
-            attributes[attr] = self.fetch(attr)
-        }
-        
-        return attributes
     }
 }
