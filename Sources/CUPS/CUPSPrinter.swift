@@ -275,17 +275,19 @@ extension CUPSPrinter {
         }
     }
     
-    public var typeSupported: String? {
+    public var typeSupported: [String] {
         
         return self.fetch("pwg-raster-document-type-supported", IPP_TAG_KEYWORD) { attr in
             
-            guard let attr = attr else { return nil }
+            guard let attr = attr else { return [] }
             
-            var buffer = [Int8](repeating: 0, count: ippAttributeString(attr, nil, 0) + 1)
-            return buffer.withUnsafeMutableBufferPointer {
-                ippAttributeString(attr, $0.baseAddress, $0.count)
-                return String(cString: $0.baseAddress!)
+            var typeSupported: [String] = []
+            
+            for i in 0..<ippGetCount(attr) {
+                typeSupported.append(String(cString: ippGetString(attr, i, nil)))
             }
+            
+            return typeSupported
         }
     }
 }
