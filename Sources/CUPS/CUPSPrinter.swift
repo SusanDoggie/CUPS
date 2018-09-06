@@ -128,7 +128,17 @@ extension CUPSPrinter {
         var attributes: [String: String] = [:]
         
         for attr in self._attributes {
-            attributes[attr] = self.fetch(attr)
+            
+            attributes[attr] = self.fetch(attr, IPP_TAG_ZERO) { attr in
+                
+                guard let attr = attr else { return nil }
+                
+                var buffer = [Int8](repeating: 0, count: ippAttributeString(attr, nil, 0) + 1)
+                return buffer.withUnsafeMutableBufferPointer {
+                    ippAttributeString(attr, $0.baseAddress, $0.count)
+                    return String(cString: $0.baseAddress!)
+                }
+            }
         }
         
         return attributes
@@ -152,31 +162,6 @@ extension CUPSPrinter {
         guard let _attr = ippFindAttribute(response, attribute, value_tag) else { return try callback(nil) }
         
         return try callback(_attr)
-    }
-    
-    public func fetch(_ attribute: String) -> String? {
-        
-        return self.fetch(attribute, IPP_TAG_ZERO) { attr in
-            
-            guard let attr = attr else { return nil }
-            
-            var buffer = [Int8](repeating: 0, count: ippAttributeString(attr, nil, 0) + 1)
-            return buffer.withUnsafeMutableBufferPointer {
-                ippAttributeString(attr, $0.baseAddress, $0.count)
-                return String(cString: $0.baseAddress!)
-            }
-        }
-    }
-}
-
-extension CUPSPrinter {
-    
-    public var info: String {
-        return attributes["printer-info"] ?? ""
-    }
-    
-    public var model: String? {
-        return attributes["printer-make-and-model"]
     }
 }
 
@@ -211,81 +196,6 @@ extension CUPSPrinter {
             guard cupsGetDestMediaDefault(nil, dest, info, UInt32(CUPS_MEDIA_FLAGS_DEFAULT), &size) == 1 else { return nil }
             return CUPSMedia(size)
         }
-    }
-}
-
-extension CUPSPrinter {
-    
-    public var state: String? {
-        return attributes["printer-state"]
-    }
-    
-    public var stateReasons: String? {
-        return attributes["printer-state-reasons"]
-    }
-    
-    public var isShared: Bool? {
-        guard let bool = attributes["printer-is-shared"] else { return nil }
-        switch bool {
-        case "true": return true
-        case "false": return false
-        default: return nil
-        }
-    }
-    
-    public var isTemporary: Bool? {
-        guard let bool = attributes["printer-is-temporary"] else { return nil }
-        switch bool {
-        case "true": return true
-        case "false": return false
-        default: return nil
-        }
-    }
-    
-    public var isAcceptingJobs: Bool? {
-        guard let bool = attributes["printer-is-accepting-jobs"] else { return nil }
-        switch bool {
-        case "true": return true
-        case "false": return false
-        default: return nil
-        }
-    }
-    
-    public var stateUpdateTime: Date? {
-        guard let time = attributes["printer-state-change-time"].flatMap(TimeInterval.init) else { return nil }
-        return Date(timeIntervalSince1970: time)
-    }
-}
-
-extension CUPSPrinter {
-    
-    public var markerLevels: String? {
-        return attributes["marker-levels"]
-    }
-    
-    public var markerHighLevels: String? {
-        return attributes["marker-high-levels"]
-    }
-    
-    public var markerLowLevels: String? {
-        return attributes["marker-low-levels"]
-    }
-    
-    public var markerColors: String? {
-        return attributes["marker-colors"]
-    }
-    
-    public var markerNames: String? {
-        return attributes["marker-names"]
-    }
-    
-    public var markerTypes: String? {
-        return attributes["marker-types"]
-    }
-    
-    public var markerUpdateTime: Date? {
-        guard let time = attributes["marker-change-time"].flatMap(TimeInterval.init) else { return nil }
-        return Date(timeIntervalSince1970: time)
     }
 }
 
@@ -349,17 +259,6 @@ extension CUPSPrinter {
             
             return typeSupported
         }
-    }
-}
-
-extension CUPSPrinter {
-    
-    public var documentFormatDefault: String? {
-        return attributes["document-format-default"]
-    }
-    
-    public var documentFormatSupported: String? {
-        return attributes["document-format-supported"]
     }
 }
 
