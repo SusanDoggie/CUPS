@@ -131,29 +131,21 @@ extension CUPSPrinter {
 
 extension CUPSPrinter {
     
-    public func fetch(_ attribute: String) -> String? {
+    public func fetch<Result>(_ attribute: String, _ value_tag: ipp_tag_t, callback: (OpaquePointer?) throws -> Result) rethrows -> Result {
         
-        guard let uri = uri else { return nil }
+        guard let uri = uri else { return try callback(nil) }
         
-        return attribute.withCString { attr in
-            
-            guard let request = ippNewRequest(IPP_OP_GET_PRINTER_ATTRIBUTES) else { return nil }
-            
-            ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_URI, "printer-uri", nil, uri.absoluteString)
-            ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_NAME, "requesting-user-name", nil, cupsUser())
-            ippAddStrings(request, IPP_TAG_OPERATION, IPP_TAG_KEYWORD, "requested-attributes", 1, nil, [attr])
-            
-            guard let response = cupsDoRequest(nil, request, uri.path) else { return nil }
-            defer { ippDelete(response) }
-            
-            guard let _attr = ippFindAttribute(response, attribute, IPP_TAG_ZERO) else { return nil }
-            
-            var buffer = [Int8](repeating: 0, count: ippAttributeString(_attr, nil, 0) + 1)
-            return buffer.withUnsafeMutableBufferPointer {
-                ippAttributeString(_attr, $0.baseAddress, $0.count)
-                return String(cString: $0.baseAddress!)
-            }
-        }
+        guard let request = ippNewRequest(IPP_OP_GET_PRINTER_ATTRIBUTES) else { return try callback(nil) }
+        
+        ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_URI, "printer-uri", nil, uri.absoluteString)
+        ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_NAME, "requesting-user-name", nil, cupsUser())
+        
+        guard let response = cupsDoRequest(nil, request, uri.path) else { return try callback(nil) }
+        defer { ippDelete(response) }
+        
+        guard let _attr = ippFindAttribute(response, attribute, value_tag) else { return try callback(nil) }
+        
+        return try callback(_attr)
     }
 }
 
@@ -248,6 +240,39 @@ extension CUPSPrinter {
     public var markerUpdateTime: Date? {
         guard let time = attributes["marker-change-time"].flatMap(TimeInterval.init) else { return nil }
         return Date(timeIntervalSince1970: time)
+    }
+}
+
+public struct CUPSResolution {
+    
+    public var xdpi: Int32
+    public var ydpi: Int32
+    public var units: ipp_res_t
+}
+
+extension CUPSPrinter {
+    
+    public var resolution: [CUPSResolution] {
+        
+        return self.fetch("pwg-raster-document-resolution-supported", IPP_TAG_RESOLUTION) { attr in
+            
+            guard let attr = attr else { return [] }
+            
+            var resolution: [CUPSResolution] = []
+            
+            for i in 0..<ippGetCount(attr) {
+                
+                var xdpi: Int32 = 0
+                var ydpi: Int32 = 0
+                var units: ipp_res_t = ipp_res_t(rawValue: 0)
+                
+                xdpi = ippGetResolution(attr, i, &ydpi, &units)
+                
+                resolution.append(CUPSResolution(xdpi: xdpi, ydpi: ydpi, units: units))
+            }
+            
+            return resolution
+        }
     }
 }
 
