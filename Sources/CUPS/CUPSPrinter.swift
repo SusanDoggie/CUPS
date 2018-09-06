@@ -257,13 +257,6 @@ extension CUPSPrinter {
     }
 }
 
-public struct CUPSResolution {
-    
-    public var xdpi: Int32
-    public var ydpi: Int32
-    public var units: ipp_res_t
-}
-
 extension CUPSPrinter {
     
     public var resolution: [CUPSResolution] {
@@ -276,13 +269,13 @@ extension CUPSPrinter {
             
             for i in 0..<ippGetCount(attr) {
                 
-                var xdpi: Int32 = 0
-                var ydpi: Int32 = 0
+                var xres: Int32 = 0
+                var yres: Int32 = 0
                 var units: ipp_res_t = ipp_res_t(rawValue: 0)
                 
-                xdpi = ippGetResolution(attr, i, &ydpi, &units)
+                xres = ippGetResolution(attr, i, &yres, &units)
                 
-                resolution.append(CUPSResolution(xdpi: xdpi, ydpi: ydpi, units: units))
+                resolution.append(CUPSResolution(xres: UInt32(xres), yres: UInt32(yres), units: units))
             }
             
             return resolution
