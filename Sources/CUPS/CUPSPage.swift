@@ -31,14 +31,9 @@ public struct CUPSPage {
     
     public var data: Data = Data()
     
-    public init?(_ media: UnsafePointer<pwg_media_t>, _ type: UnsafePointer<Int8>, _ xdpi: UInt32, _ ydpi: UInt32, _ sides: UnsafePointer<Int8>?, _ sheet_back: UnsafePointer<Int8>?) {
-        self.header = cups_page_header2_t()
-        guard cupsRasterInitPWGHeader(&header, UnsafeMutablePointer(mutating: media), type, Int32(xdpi), Int32(ydpi), sides, sheet_back) != 0 else { return nil }
-    }
-    
     public init?(_ media: CUPSMedia, _ type: UnsafePointer<Int8>, _ xdpi: UInt32, _ ydpi: UInt32, _ sides: UnsafePointer<Int8>?, _ sheet_back: UnsafePointer<Int8>?) {
-        guard let page = media.withUnsafePwgMediaPointer(callback: { $0.flatMap { CUPSPage($0, type, xdpi, ydpi, sides, sheet_back) } }) else { return nil }
-        self = page
+        self.header = cups_page_header2_t()
+        guard media.withUnsafePwgMediaPointer(callback: { cupsRasterInitPWGHeader(&header, UnsafeMutablePointer(mutating: $0), type, Int32(xdpi), Int32(ydpi), sides, sheet_back) }) != 0 else { return nil }
         self.header.Margins.0 = 72 * UInt32(media.left) / 2540
         self.header.Margins.1 = 72 * UInt32(media.bottom) / 2540
         self.header.ImagingBoundingBox.0 = self.header.Margins.0
