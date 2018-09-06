@@ -290,6 +290,22 @@ extension CUPSPrinter {
             return typeSupported
         }
     }
+    
+    public var sheetBack: [String] {
+        
+        return self.fetch("pwg-raster-document-sheet-back", IPP_TAG_KEYWORD) { attr in
+            
+            guard let attr = attr else { return [] }
+            
+            var typeSupported: [String] = []
+            
+            for i in 0..<ippGetCount(attr) {
+                typeSupported.append(String(cString: ippGetString(attr, i, nil)))
+            }
+            
+            return typeSupported
+        }
+    }
 }
 
 extension CUPSPrinter {
