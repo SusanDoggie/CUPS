@@ -261,25 +261,30 @@ extension CUPSPrinter {
     
     public var resolution: [CUPSResolution] {
         
-        return self.fetch("pwg-raster-document-resolution-supported", IPP_TAG_RESOLUTION) { attr in
+        func _fetch(_ attribute: String) -> [CUPSResolution]? {
             
-            guard let attr = attr else { return [] }
-            
-            var resolution: [CUPSResolution] = []
-            
-            for i in 0..<ippGetCount(attr) {
+            return self.fetch(attribute, IPP_TAG_RESOLUTION) { attr in
                 
-                var xres: Int32 = 0
-                var yres: Int32 = 0
-                var units: ipp_res_t = ipp_res_t(rawValue: 0)
+                guard let attr = attr else { return nil }
                 
-                xres = ippGetResolution(attr, i, &yres, &units)
+                var resolution: [CUPSResolution] = []
                 
-                resolution.append(CUPSResolution(xres: UInt32(xres), yres: UInt32(yres), units: units))
+                for i in 0..<ippGetCount(attr) {
+                    
+                    var xres: Int32 = 0
+                    var yres: Int32 = 0
+                    var units: ipp_res_t = ipp_res_t(rawValue: 0)
+                    
+                    xres = ippGetResolution(attr, i, &yres, &units)
+                    
+                    resolution.append(CUPSResolution(xres: UInt32(xres), yres: UInt32(yres), units: units))
+                }
+                
+                return resolution
             }
-            
-            return resolution
         }
+        
+        return _fetch("printer-resolution-supported") ?? _fetch("pwg-raster-document-resolution-supported") ?? []
     }
     
     public var colorTypeSupported: [String] {
