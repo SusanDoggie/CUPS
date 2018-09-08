@@ -86,7 +86,7 @@ extension CUPSPage {
     @discardableResult
     public func write(_ fd: Int32) -> Bool {
         
-        guard let raster = cupsRasterOpen(fd, CUPS_RASTER_WRITE) else { return false }
+        guard let raster = cupsRasterOpen(fd, CUPS_RASTER_WRITE_COMPRESSED) else { return false }
         defer { cupsRasterClose(raster) }
         
         var header = self.header
