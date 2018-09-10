@@ -26,20 +26,7 @@
 #ifndef ccups_h
 #define ccups_h
 
-#include <cups/adminutil.h>
-#include <cups/array.h>
-#include <cups/backend.h>
 #include <cups/cups.h>
-#include <cups/dir.h>
-#include <cups/file.h>
-#include <cups/http.h>
-#include <cups/ipp.h>
-#include <cups/language.h>
-#include <cups/ppd.h>
-#include <cups/pwg.h>
 #include <cups/raster.h>
-#include <cups/sidechannel.h>
-#include <cups/transcode.h>
-#include <cups/versioning.h>
 
 #endif /* ccups_h */
