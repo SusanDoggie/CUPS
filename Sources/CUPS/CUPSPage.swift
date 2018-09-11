@@ -31,18 +31,109 @@ public struct CUPSPage {
     
     public var data: Data = Data()
     
-    public init?(_ media: CUPSMedia, _ type: String, _ xdpi: UInt32, _ ydpi: UInt32, _ sides: String?, _ sheet_back: String?) {
+    public init?(_ media: CUPSMedia, _ colorSpace: cups_cspace_t, _ bitsPerColor: UInt8, _ xdpi: UInt32, _ ydpi: UInt32, _ sides: String?, _ sheet_back: String?) {
+        
         self.header = cups_page_header2_t()
-        guard media.withUnsafePwgMediaPointer(callback: { cupsRasterInitPWGHeader(&header, UnsafeMutablePointer(mutating: $0), type, Int32(xdpi), Int32(ydpi), sides, sheet_back) }) != 0 else { return nil }
-        self.header.Margins.0 = 72 * UInt32(media.left) / 2540
-        self.header.Margins.1 = 72 * UInt32(media.bottom) / 2540
-        self.header.ImagingBoundingBox.0 = self.header.Margins.0
-        self.header.ImagingBoundingBox.1 = self.header.Margins.1
-        self.header.ImagingBoundingBox.2 = 72 * UInt32(media.width - media.right) / 2540
-        self.header.ImagingBoundingBox.3 = 72 * UInt32(media.height - media.top) / 2540
-        self.header.cupsWidth = UInt32(media.width - media.left - media.right) * xdpi / 2540
-        self.header.cupsHeight = UInt32(media.height - media.top - media.bottom) * ydpi / 2540
-        self.header.cupsBytesPerLine = (self.header.cupsWidth * self.header.cupsBitsPerPixel + 7) / 8
+        
+        guard let pwgMedia = pwgMediaForSize(media.width, media.height) else { return nil }
+        
+        withUnsafeMutableBytes(of: &self.header.cupsPageSizeName) { _ = strlcpy($0.baseAddress?.assumingMemoryBound(to: Int8.self), pwgMedia.pointee.pwg, $0.count) }
+        
+        switch bitsPerColor {
+        case 1:
+            switch colorSpace {
+            case CUPS_CSPACE_K:     self.header.cupsNumColors = 1
+            case CUPS_CSPACE_SW:    self.header.cupsNumColors = 1
+            default: return nil
+            }
+        case 8, 16:
+            switch colorSpace {
+            case CUPS_CSPACE_K:         self.header.cupsNumColors = 1
+            case CUPS_CSPACE_SW:        self.header.cupsNumColors = 1
+            case CUPS_CSPACE_SRGB:      self.header.cupsNumColors = 3
+            case CUPS_CSPACE_ADOBERGB:  self.header.cupsNumColors = 3
+            case CUPS_CSPACE_RGB:       self.header.cupsNumColors = 3
+            case CUPS_CSPACE_CMYK:      self.header.cupsNumColors = 4
+            case CUPS_CSPACE_DEVICE1:   self.header.cupsNumColors = 1
+            case CUPS_CSPACE_DEVICE2:   self.header.cupsNumColors = 2
+            case CUPS_CSPACE_DEVICE3:   self.header.cupsNumColors = 3
+            case CUPS_CSPACE_DEVICE4:   self.header.cupsNumColors = 4
+            case CUPS_CSPACE_DEVICE5:   self.header.cupsNumColors = 5
+            case CUPS_CSPACE_DEVICE6:   self.header.cupsNumColors = 6
+            case CUPS_CSPACE_DEVICE7:   self.header.cupsNumColors = 7
+            case CUPS_CSPACE_DEVICE8:   self.header.cupsNumColors = 8
+            case CUPS_CSPACE_DEVICE9:   self.header.cupsNumColors = 9
+            case CUPS_CSPACE_DEVICEA:   self.header.cupsNumColors = 10
+            case CUPS_CSPACE_DEVICEB:   self.header.cupsNumColors = 11
+            case CUPS_CSPACE_DEVICEC:   self.header.cupsNumColors = 12
+            case CUPS_CSPACE_DEVICED:   self.header.cupsNumColors = 13
+            case CUPS_CSPACE_DEVICEE:   self.header.cupsNumColors = 14
+            case CUPS_CSPACE_DEVICEF:   self.header.cupsNumColors = 15
+            default: return nil
+            }
+        default: return nil
+        }
+        
+        self.header.HWResolution.0          = xdpi
+        self.header.HWResolution.1          = ydpi
+        self.header.cupsColorSpace          = colorSpace
+        self.header.cupsBitsPerColor        = UInt32(bitsPerColor)
+        self.header.cupsColorOrder          = CUPS_ORDER_CHUNKED
+        self.header.PageSize.0              = 72 * UInt32(media.width) / 2540
+        self.header.PageSize.1              = 72 * UInt32(media.height) / 2540
+        self.header.cupsPageSize.0          = 72.0 * Float(media.width) / 2540.0
+        self.header.cupsPageSize.1          = 72.0 * Float(media.height) / 2540.0
+        self.header.Margins.0               = 72 * UInt32(media.left) / 2540
+        self.header.Margins.1               = 72 * UInt32(media.bottom) / 2540
+        self.header.ImagingBoundingBox.0    = self.header.Margins.0
+        self.header.ImagingBoundingBox.1    = self.header.Margins.1
+        self.header.ImagingBoundingBox.2    = 72 * UInt32(media.width - media.right) / 2540
+        self.header.ImagingBoundingBox.3    = 72 * UInt32(media.height - media.top) / 2540
+        self.header.cupsWidth               = UInt32(media.width - media.left - media.right) * xdpi / 2540
+        self.header.cupsHeight              = UInt32(media.height - media.top - media.bottom) * ydpi / 2540
+        self.header.cupsBitsPerPixel        = self.header.cupsBitsPerColor * self.header.cupsNumColors
+        self.header.cupsBytesPerLine        = (self.header.cupsWidth * self.header.cupsBitsPerPixel + 7) / 8
+        
+        self.header.cupsInteger.1 = 1
+        self.header.cupsInteger.2 = 1
+        
+        if let sides = sides {
+            
+            switch sides {
+            case "two-sided-long-edge": self.header.Duplex = CUPS_TRUE
+            case "two-sided-short-edge":
+                
+                self.header.Duplex = CUPS_TRUE
+                self.header.Tumble = CUPS_TRUE
+                
+            case "one-sided": break
+            default: return nil
+            }
+            
+            if let sheet_back = sheet_back {
+                
+                switch sheet_back {
+                case "flipped":
+                    if self.header.Tumble == CUPS_TRUE {
+                        self.header.cupsInteger.1 = 0xffffffff
+                    } else {
+                        self.header.cupsInteger.2 = 0xffffffff
+                    }
+                case "manual-tumble":
+                    if self.header.Tumble == CUPS_TRUE {
+                        self.header.cupsInteger.1 = 0xffffffff
+                        self.header.cupsInteger.2 = 0xffffffff
+                    }
+                case "rotated":
+                    if self.header.Tumble == CUPS_FALSE {
+                        self.header.cupsInteger.1 = 0xffffffff
+                        self.header.cupsInteger.2 = 0xffffffff
+                    }
+                case "normal": break
+                default: return nil
+                }
+            }
+        }
     }
 }
 
@@ -104,57 +195,6 @@ extension CUPSPage {
         
         return true
     }
-}
-
-extension CUPSPage {
-    
-    public static let type_adobe_rgb_8 = "adobe-rgb_8"
-    public static let type_adobe_rgb_16 = "adobe-rgb_16"
-    public static let type_black_1 = "black_1"
-    public static let type_black_8 = "black_8"
-    public static let type_black_16 = "black_16"
-    public static let type_cmyk_8 = "cmyk_8"
-    public static let type_cmyk_16 = "cmyk_16"
-    public static let type_rgb_8 = "rgb_8"
-    public static let type_rgb_16 = "rgb_16"
-    public static let type_sgray_1 = "sgray_1"
-    public static let type_sgray_8 = "sgray_8"
-    public static let type_sgray_16 = "sgray_16"
-    public static let type_srgb_8 = "srgb_8"
-    public static let type_srgb_16 = "srgb_16"
-    
-    public static let type_device1_8 = "device1_8"
-    public static let type_device2_8 = "device2_8"
-    public static let type_device3_8 = "device3_8"
-    public static let type_device4_8 = "device4_8"
-    public static let type_device5_8 = "device5_8"
-    public static let type_device6_8 = "device6_8"
-    public static let type_device7_8 = "device7_8"
-    public static let type_device8_8 = "device8_8"
-    public static let type_device9_8 = "device9_8"
-    public static let type_device10_8 = "device10_8"
-    public static let type_device11_8 = "device11_8"
-    public static let type_device12_8 = "device12_8"
-    public static let type_device13_8 = "device13_8"
-    public static let type_device14_8 = "device14_8"
-    public static let type_device15_8 = "device15_8"
-    
-    public static let type_device1_16 = "device1_16"
-    public static let type_device2_16 = "device2_16"
-    public static let type_device3_16 = "device3_16"
-    public static let type_device4_16 = "device4_16"
-    public static let type_device5_16 = "device5_16"
-    public static let type_device6_16 = "device6_16"
-    public static let type_device7_16 = "device7_16"
-    public static let type_device8_16 = "device8_16"
-    public static let type_device9_16 = "device9_16"
-    public static let type_device10_16 = "device10_16"
-    public static let type_device11_16 = "device11_16"
-    public static let type_device12_16 = "device12_16"
-    public static let type_device13_16 = "device13_16"
-    public static let type_device14_16 = "device14_16"
-    public static let type_device15_16 = "device15_16"
-    
 }
 
 extension CUPSPage {

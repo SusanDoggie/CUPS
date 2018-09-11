@@ -57,10 +57,3 @@ public struct CUPSMedia {
         self.top = top
     }
 }
-
-extension CUPSMedia {
-    
-    func withUnsafePwgMediaPointer<Result>(callback: (UnsafePointer<pwg_media_t>?) throws -> Result) rethrows -> Result {
-        return try callback(pwgMediaForSize(width, height))
-    }
-}
