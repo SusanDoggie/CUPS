@@ -264,9 +264,34 @@ extension CUPSPrinter {
 
 extension CUPSPrinter {
     
-    public func print(title: String, _ files: [String], _ options: [String: String] = [:]) -> CUPSJob? {
+    public func printTestPage() -> CUPSJob? {
         
-        var buffer: [UnsafePointer<Int8>?] = []
+        let command = """
+        #CUPS-COMMAND
+        PrintSelfTestPage
+        """
+        
+        let doc = CUPSDocument(name: "print test page", format: "application/vnd.cups-command", data: command.data(using: .utf8)!)
+        
+        return self.send(title: "Print test page", [doc])
+    }
+    
+    public func clean(_ colorname: String = "all") -> CUPSJob? {
+        
+        let command = """
+        #CUPS-COMMAND
+        Clean \(colorname)
+        """
+        
+        let doc = CUPSDocument(name: "command", format: "application/vnd.cups-command", data: command.data(using: .utf8)!)
+        
+        return self.send(title: "Clean \(colorname)", [doc])
+    }
+}
+
+extension CUPSPrinter {
+    
+    public func send(title: String, _ documents: [CUPSDocument], _ options: [String: String] = [:]) -> CUPSJob? {
         
         var num_options: Int32 = 0
         var _options: UnsafeMutablePointer<cups_option_t>?
@@ -275,24 +300,44 @@ extension CUPSPrinter {
             num_options = cupsAddOption(key, value, num_options, &_options)
         }
         
-        func _print(_ index: Int) -> Int32 {
-            if index == files.count {
-                var buffer = buffer
-                return cupsPrintFiles(name, Int32(buffer.count), &buffer, title, num_options, _options)
-            } else {
-                return files[index].withCString {
-                    buffer.append($0)
-                    return _print(index + 1)
-                }
+        defer {
+            if num_options != 0 {
+                cupsFreeOptions(num_options, _options)
             }
         }
         
-        let job_id = _print(0)
+        let job_id = cupsCreateJob(nil, name, title, num_options, _options)
         
-        if num_options != 0 {
-            cupsFreeOptions(num_options, _options)
+        for (index, document) in documents.enumerated() {
+            
+            var status = cupsStartDocument(nil, name, job_id, document.name, document.format ?? CUPS_FORMAT_AUTO, index == documents.count - 1 ? 1 : 0)
+            
+            status = document.data.withUnsafeBytes { cupsWriteRequestData(nil, $0, document.data.count) }
+            
+            if status != HTTP_STATUS_CONTINUE || cupsFinishDocument(nil, name) != IPP_STATUS_OK {
+                cupsCancelJob2(nil, name, job_id, 0)
+                return nil
+            }
         }
         
         return job_id == 0 ? nil : CUPSJob(dest: self, id: job_id)
+    }
+}
+
+extension CUPSPrinter {
+    
+    public func print(title: String, _ files: [String], _ options: [String: String] = [:]) -> CUPSJob? {
+        
+        do {
+            
+            let list = try files.map { try Data(contentsOf: URL(fileURLWithPath: $0)) }
+            
+            let docs = list.enumerated().map { CUPSDocument(name: "\(title) \($0 + 1)", format: nil, data: $1) }
+            
+            return self.send(title: title, docs, options)
+            
+        } catch {
+            return nil
+        }
     }
 }
