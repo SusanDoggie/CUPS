@@ -283,7 +283,7 @@ extension CUPSPrinter {
         Clean \(colorname)
         """
         
-        let doc = CUPSDocument(name: "command", format: "application/vnd.cups-command", data: command.data(using: .utf8)!)
+        let doc = CUPSDocument(name: "clean \(colorname)", format: "application/vnd.cups-command", data: command.data(using: .utf8)!)
         
         return self.send(title: "Clean \(colorname)", [doc])
     }
@@ -337,9 +337,9 @@ extension CUPSPrinter {
         
         do {
             
-            let list = try files.map { try Data(contentsOf: URL(fileURLWithPath: $0)) }
+            let list = try files.map { URL(fileURLWithPath: $0) }.map { ($0.lastPathComponent, try Data(contentsOf: $0)) }
             
-            let docs = list.enumerated().map { CUPSDocument(name: "\(title) \($0 + 1)", format: nil, data: $1) }
+            let docs = list.map { CUPSDocument(name: $0, format: nil, data: $1) }
             
             return self.send(title: title, docs, options)
             
