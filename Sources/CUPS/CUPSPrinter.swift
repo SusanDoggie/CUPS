@@ -308,19 +308,26 @@ extension CUPSPrinter {
         
         let job_id = cupsCreateJob(nil, name, title, num_options, _options)
         
+        guard job_id != 0 else { return nil }
+        
         for (index, document) in documents.enumerated() {
             
             var status = cupsStartDocument(nil, name, job_id, document.name, document.format ?? CUPS_FORMAT_AUTO, index == documents.count - 1 ? 1 : 0)
             
+            guard status == HTTP_STATUS_CONTINUE else {
+                cupsCancelJob2(nil, name, job_id, 0)
+                return nil
+            }
+            
             status = document.data.withUnsafeBytes { cupsWriteRequestData(nil, $0, document.data.count) }
             
-            if status != HTTP_STATUS_CONTINUE || cupsFinishDocument(nil, name) != IPP_STATUS_OK {
+            guard status == HTTP_STATUS_CONTINUE && cupsFinishDocument(nil, name) == IPP_STATUS_OK else {
                 cupsCancelJob2(nil, name, job_id, 0)
                 return nil
             }
         }
         
-        return job_id == 0 ? nil : CUPSJob(dest: self, id: job_id)
+        return CUPSJob(dest: self, id: job_id)
     }
 }
 
