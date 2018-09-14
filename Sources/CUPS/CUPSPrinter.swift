@@ -312,7 +312,7 @@ extension CUPSPrinter {
         
         for (index, document) in documents.enumerated() {
             
-            var status = cupsStartDocument(nil, name, job_id, document.name, document.format ?? CUPS_FORMAT_AUTO, index == documents.count - 1 ? 1 : 0)
+            var status = cupsStartDocument(nil, name, job_id, document.name, document.format, index == documents.count - 1 ? 1 : 0)
             
             guard status == HTTP_STATUS_CONTINUE else {
                 cupsCancelJob2(nil, name, job_id, 0)
@@ -339,7 +339,7 @@ extension CUPSPrinter {
             
             let list = try files.map { URL(fileURLWithPath: $0) }.map { ($0.lastPathComponent, try Data(contentsOf: $0)) }
             
-            let docs = list.map { CUPSDocument(name: $0, format: nil, data: $1) }
+            let docs = list.map { CUPSDocument(name: $0, data: $1) }
             
             return self.send(title: title, docs, options)
             

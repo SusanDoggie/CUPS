@@ -28,10 +28,10 @@ import Foundation
 public struct CUPSDocument {
     
     public var name: String
-    public var format: String?
+    public var format: String
     public var data: Data
     
-    public init(name: String, format: String?, data: Data) {
+    public init(name: String, format: String = CUPS_FORMAT_AUTO, data: Data) {
         self.name = name
         self.format = format
         self.data = data
